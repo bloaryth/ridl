@@ -73,7 +73,13 @@ static inline __attribute__((always_inline)) void speculate_leak_clflush(unsigne
 }
 
 
-/* cache-conflict TSX abort (temporal), plus a clflush */
+/**
+ * cache-conflict TSX abort (temporal), plus a clflush 
+ * 
+ * @param leak 
+ * @param reloadbuffer
+ * @param flushbuffer
+ */
 static inline __attribute__((always_inline)) void tsxabort_leak_clflush(unsigned char *leak, unsigned char *reloadbuffer, unsigned char *flushbuffer) {
 	asm volatile(
 	// leak setup
@@ -92,7 +98,14 @@ static inline __attribute__((always_inline)) void tsxabort_leak_clflush(unsigned
 	);
 }
 
-/* tsxabort_leak_clflush with a bitshift to get bytes at non-zero offsets */
+/**
+ * tsxabort_leak_clflush with a bitshift to get bytes at non-zero offsets
+ * 
+ * @param leak 
+ * @param reloadbuffer
+ * @param flushbuffer
+ * @param shift
+ */
 static inline __attribute__((always_inline)) void tsxabort_leak_clflush_shifted(unsigned char *leak, unsigned char *reloadbuffer, unsigned char *flushbuffer, uint8_t shift) {
 	asm volatile(
 	// leak setup
@@ -114,7 +127,13 @@ static inline __attribute__((always_inline)) void tsxabort_leak_clflush_shifted(
 	);
 }
 
-/* cache-conflict TSX abort (temporal), bare */
+/**
+ * cache-conflict TSX abort (temporal), bare
+ * 
+ * @param leak 
+ * @param reloadbuffer
+ * @param flushbuffer
+ */
 static inline __attribute__((always_inline)) void tsxabort_leak_bareconflict(unsigned char *leak, unsigned char *reloadbuffer, unsigned char *flushbuffer) {
 	asm volatile(
 	// leak setup
@@ -131,7 +150,14 @@ static inline __attribute__((always_inline)) void tsxabort_leak_bareconflict(uns
 	);
 }
 
-/* just read from a pointer inside TSX */
+/**
+ * just read from a pointer inside TSX
+ * 
+ * @param leak 
+ * @param reloadbuffer
+ * @param flushbuffer
+ */
+
 static inline __attribute__((always_inline)) void tsx_leak_read_normal(unsigned char *leak, unsigned char *reloadbuffer) {
 	asm volatile(
 	"xbegin 1f\n"

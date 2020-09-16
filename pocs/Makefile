@@ -1,4 +1,4 @@
-CORES=3,7
+CORES=0,1
 
 all: cross_transaction_leak verw_bypass alignment_write ridl_basic ridl_invalidpage taa_basic taa_read pgtable_leak pgtable_leak_notsx loadport verw_bypass_l1des vrs cpuid_leak_taa cpuid_leak
 
@@ -44,7 +44,7 @@ run: all
 	./verw_bypass_l1des
 	
 	# vrs
-	taskset -c $(CORES) ./vrs
+	#taskset -c $(CORES) ./vrs
 
 cpuid_leak_taa: cpuid_leak.c ridl.h leak_code.h
 	gcc -O3 -Wall -DTAA -o $@ $<
