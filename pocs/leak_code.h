@@ -94,7 +94,7 @@ static inline __attribute__((always_inline)) void tsxabort_leak_clflush(unsigned
 	"movzbq (%%rax, %1), %%rax\n"
 	"xend\n"
 	"1:\n"
-	::"r"(leak), "r"(reloadbuffer), "r"(flushbuffer):"rax"
+	: :"r"(leak), "r"(reloadbuffer), "r"(flushbuffer):"rax", "r8"
 	);
 }
 

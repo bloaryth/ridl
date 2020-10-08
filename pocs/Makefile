@@ -1,10 +1,10 @@
 CORES=0,1
 
-all: cross_transaction_leak verw_bypass alignment_write ridl_basic ridl_invalidpage taa_basic taa_read pgtable_leak pgtable_leak_notsx loadport verw_bypass_l1des vrs cpuid_leak_taa cpuid_leak
+all: cross_transaction_leak.out verw_bypass.out alignment_write.out ridl_basic.out ridl_invalidpage.out taa_basic.out taa_read.out pgtable_leak.out pgtable_leak_notsx.out loadport verw_bypass_l1des.out vrs.out cpuid_leak_taa.out cpuid_leak.out
 
 clean:
-	rm cross_transaction_leak verw_bypass alignment_write ridl_basic ridl_invalidpage taa_basic taa_read pgtable_leak pgtable_leak_notsx loadport verw_bypass_l1des vrs cpuid_leak_taa cpuid_leak
-
+	rm *.out
+	
 run: all
 	# should leak cpuid buffer
 	taskset -c $(CORES) ./cpuid_leak_taa
@@ -46,9 +46,9 @@ run: all
 	# vrs
 	#taskset -c $(CORES) ./vrs
 
-cpuid_leak_taa: cpuid_leak.c ridl.h leak_code.h
-	gcc -O3 -Wall -DTAA -o $@ $<
+cpuid_leak_taa.out: cpuid_leak.c ridl.h leak_code.h
+	gcc -O0 -Wall -DTAA -o $@ $<
 
-%: %.c ridl.h ridl2.h leak_code.h
-	gcc -O3 -o $@ $<
+%.out: %.c ridl.h ridl2.h leak_code.h
+	gcc -O0 -o $@ $<
 
